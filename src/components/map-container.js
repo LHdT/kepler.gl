@@ -40,6 +40,7 @@ import {transformRequest} from 'utils/map-style-utils/mapbox-utils';
 
 // default-settings
 import {LAYER_BLENDINGS} from 'constants/default-settings';
+import SharedstreetsLayer from 'deckgl-layers/sharedstreets-layer/sharedstreets-layer';
 
 const MAP_STYLE = {
   container: {
@@ -321,8 +322,10 @@ export default function MapContainerFactory(MapPopover, MapControl) {
     _renderOverlay() {
       const {
         mapState,
+        layers,
         layerData,
         layerOrder,
+        tiledDatasets,
         visStateActions
       } = this.props;
 
@@ -337,17 +340,52 @@ export default function MapContainerFactory(MapPopover, MapControl) {
           .reduce(this._renderLayer, []);
       }
 
+      // render layers for untiled data sources.
+      const layersToRender = deckGlLayers.filter(deckGlLayer => {
+        const sampleKeplerLayer = layers.find(keplerLayer => keplerLayer.id === deckGlLayer.id);
+        return !tiledDatasets.includes(sampleKeplerLayer.config.dataId);
+      });
+      // render layers for tiled data sources, from sample data layers.
+      tiledDatasets.forEach(tiledDataset => {
+        const sampleKeplerLayers = layers.filter(layer => layer.config.dataId === tiledDataset)
+        const sharedstreetsLayer = this._renderSharedstreetsLayer(sampleKeplerLayers);
+        layersToRender.push(sharedstreetsLayer);
+      });
+
       return (
         <DeckGL
           viewState={mapState}
           id="default-deckgl-overlay"
-          layers={deckGlLayers}
+          layers={layersToRender}
           onWebGLInitialized={this._onWebGLInitialized}
           onBeforeRender={this._onBeforeRender}
           onLayerHover={visStateActions.onLayerHover}
           onLayerClick={visStateActions.onLayerClick}
         />
       );
+    }
+
+    _renderSharedstreetsLayer(sampleDataLayers) {
+      const {
+        visStateActions,
+        mapState,
+        interactionConfig,
+        clicked,
+        hoverInfo,
+        filters
+      } = this.props;
+
+      const objectHovered = clicked || hoverInfo;
+
+      return new SharedstreetsLayer({
+        id: 'sharedstreet',
+        addTiledDatasetSample: visStateActions.addTiledDatasetSample,
+        layers: sampleDataLayers,
+        filters,
+        objectHovered,
+        mapState,
+        interactionConfig
+      })
     }
 
     _renderMapboxLayers() {

@@ -139,6 +139,7 @@ export default class PointLayer extends Layer {
   }
 
   formatLayerData(_, allData, filteredIndex, oldLayerData, opt = {}) {
+    super.formatLayerData(_, allData, filteredIndex, oldLayerData);
     const {
       colorScale,
       colorDomain,
@@ -235,6 +236,7 @@ export default class PointLayer extends Layer {
   }
 
   renderLayer({
+    id,
     data,
     idx,
     layerInteraction,
@@ -267,7 +269,7 @@ export default class PointLayer extends Layer {
         ...data,
         ...interaction,
         idx,
-        id: this.id,
+        id: id || this.id,
         opacity: this.config.visConfig.opacity,
         pickable: true,
         parameters: {
@@ -294,7 +296,7 @@ export default class PointLayer extends Layer {
       ...(this.config.textLabel.field
         ? [
             new TextLayer({
-              id: `${this.id}-label`,
+              id: `${id || this.id}-label`,
               data: data.data,
               getPosition: data.getPosition,
               getPixelOffset: this.config.textLabel.offset,
